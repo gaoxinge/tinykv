@@ -50,7 +50,7 @@ func (c *Config) Validate() error {
 	}
 
 	if c.RaftElectionTimeoutTicks <= c.RaftHeartbeatTicks {
-		return fmt.Errorf("election tick must be greater than heartbeat tick.")
+		return fmt.Errorf("election tick must be greater than heartbeat tick")
 	}
 
 	return nil
@@ -86,7 +86,7 @@ func NewDefaultConfig() *Config {
 		SchedulerStoreHeartbeatTickInterval: 10 * time.Second,
 		RegionMaxSize:                       144 * MB,
 		RegionSplitSize:                     96 * MB,
-		DBPath:                              "/tmp/badger",
+		DBPath:                              "C:\\tmp\\badger",
 	}
 }
 
@@ -105,6 +105,6 @@ func NewTestConfig() *Config {
 		SchedulerStoreHeartbeatTickInterval: 500 * time.Millisecond,
 		RegionMaxSize:                       144 * MB,
 		RegionSplitSize:                     96 * MB,
-		DBPath:                              "/tmp/badger",
+		DBPath:                              "C:\\tmp\\badger",
 	}
 }
