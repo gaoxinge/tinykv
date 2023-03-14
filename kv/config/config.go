@@ -5,6 +5,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/pingcap-incubator/tinykv/log"
 )
 
@@ -86,7 +88,7 @@ func NewDefaultConfig() *Config {
 		SchedulerStoreHeartbeatTickInterval: 10 * time.Second,
 		RegionMaxSize:                       144 * MB,
 		RegionSplitSize:                     96 * MB,
-		DBPath:                              "C:\\tmp\\badger",
+		DBPath:                              fmt.Sprintf("C:\\tmp\\badger-%s", uuid.NewString()),
 	}
 }
 
@@ -105,6 +107,6 @@ func NewTestConfig() *Config {
 		SchedulerStoreHeartbeatTickInterval: 500 * time.Millisecond,
 		RegionMaxSize:                       144 * MB,
 		RegionSplitSize:                     96 * MB,
-		DBPath:                              "C:\\tmp\\badger",
+		DBPath:                              fmt.Sprintf("C:\\tmp\\badger-%s", uuid.NewString()),
 	}
 }

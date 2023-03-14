@@ -8,6 +8,7 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/protobuf v1.3.4
 	github.com/google/btree v1.0.0
+	github.com/google/uuid v1.3.0
 	github.com/juju/errors v0.0.0-20181118221551-089d3ea4e4d5
 	github.com/juju/testing v0.0.0-20200510222523-6c8c298c77a0 // indirect
 	github.com/onsi/ginkgo v1.12.1 // indirect
@@ -35,3 +36,5 @@ require (
 go 1.13
 
 replace github.com/pingcap/tidb => github.com/pingcap-incubator/tinysql v0.0.0-20200518090433-a7d00f9e6aa7
+
+replace github.com/Connor1996/badger v1.5.1-0.20220222053432-2d2cbf472c77 => C:\gaoxinge\GoPath\src\github.com\Connor1996\badger

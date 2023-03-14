@@ -4,12 +4,14 @@ import (
 	"os"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/pingcap-incubator/tinykv/kv/config"
 	"github.com/pingcap-incubator/tinykv/kv/storage"
 	"github.com/pingcap-incubator/tinykv/kv/storage/standalone_storage"
 	"github.com/pingcap-incubator/tinykv/kv/util/engine_util"
+	"github.com/pingcap-incubator/tinykv/log"
 	"github.com/pingcap-incubator/tinykv/proto/pkg/kvrpcpb"
-	"github.com/stretchr/testify/assert"
 )
 
 func Set(s *standalone_storage.StandAloneStorage, cf string, key []byte, value []byte) error {
@@ -40,11 +42,16 @@ func Iter(s *standalone_storage.StandAloneStorage, cf string) (engine_util.DBIte
 	return reader.IterCF(cf), nil
 }
 
-func cleanUpTestData(conf *config.Config) error {
+func cleanUpTestData(conf *config.Config) {
 	if conf != nil {
-		return os.RemoveAll(conf.DBPath)
+		log.Infof("start clean up")
+		err := os.RemoveAll(conf.DBPath)
+		if err != nil {
+			log.Warnf("end clean up with error %v", err)
+		} else {
+			log.Warnf("end clean up")
+		}
 	}
-	return nil
 }
 
 func TestRawGet1(t *testing.T) {
