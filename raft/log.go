@@ -142,7 +142,7 @@ func (l *RaftLog) Term(i uint64) (uint64, error) {
 	}
 }
 
-func (l *RaftLog) TruncateTo(i uint64) {
+func (l *RaftLog) truncateTo(i uint64) {
 	if len(l.entries) <= 1 {
 		return
 	}
@@ -150,6 +150,6 @@ func (l *RaftLog) TruncateTo(i uint64) {
 	l.entries = l.entries[:i-first+1]
 }
 
-func (l *RaftLog) Append(entries []pb.Entry) {
+func (l *RaftLog) appendEntry(entries []pb.Entry) {
 	l.entries = append(l.entries, entries...)
 }

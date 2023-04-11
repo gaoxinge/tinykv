@@ -323,9 +323,7 @@ func (r *Raft) bcastVote() error {
 	return nil
 }
 
-// tick advances the internal logical clock by a single tick.
-func (r *Raft) tick() {
-	// Your Code Here (2A).
+func (r *Raft) tickHeartbeat() {
 	r.heartbeatElapsed++
 	if r.heartbeatElapsed >= r.heartbeatTimeout {
 		r.heartbeatElapsed = 0
@@ -333,7 +331,9 @@ func (r *Raft) tick() {
 			log.Warnf("[%s] step beat msg with error %v", r, err)
 		}
 	}
+}
 
+func (r *Raft) tickElection() {
 	r.electionElapsed++
 	if r.electionElapsed >= r.electionTimeout {
 		r.electionElapsed = 0
@@ -341,6 +341,13 @@ func (r *Raft) tick() {
 			log.Warnf("[%s] step hup msg with error %v", r, err)
 		}
 	}
+}
+
+// tick advances the internal logical clock by a single tick.
+func (r *Raft) tick() {
+	// Your Code Here (2A).
+	r.tickHeartbeat()
+	r.tickElection()
 }
 
 // becomeFollower transform this peer's state to Follower
@@ -387,9 +394,6 @@ func (r *Raft) becomeCandidate() {
 	r.Lead = 0
 	r.heartbeatElapsed = 0
 	r.electionElapsed = 0
-
-	r.votes[r.id] = true
-	r.vote()
 }
 
 // becomeLeader transform this peer's state to leader
@@ -492,7 +496,7 @@ func (r *Raft) stepFollower(m pb.Message) error {
 	switch m.MsgType {
 	case pb.MessageType_MsgHup:
 		r.becomeCandidate()
-		return r.bcastVote()
+		return r.campaign()
 	case pb.MessageType_MsgBeat:
 		// ignore
 	case pb.MessageType_MsgPropose:
@@ -521,7 +525,7 @@ func (r *Raft) stepCandidate(m pb.Message) error {
 	switch m.MsgType {
 	case pb.MessageType_MsgHup:
 		r.becomeCandidate()
-		return r.bcastVote()
+		return r.campaign()
 	case pb.MessageType_MsgBeat:
 		// ignore
 	case pb.MessageType_MsgPropose:
@@ -566,6 +570,12 @@ func (r *Raft) stepLeader(m pb.Message) error {
 	return nil
 }
 
+func (r *Raft) campaign() error {
+	r.votes[r.id] = true
+	r.vote()
+	return r.bcastVote()
+}
+
 func (r *Raft) handlePropose(m pb.Message) error {
 	index := r.RaftLog.LastIndex()
 	for i, entry := range m.Entries {
@@ -577,7 +587,7 @@ func (r *Raft) handlePropose(m pb.Message) error {
 	for _, entry := range m.Entries {
 		entries = append(entries, *entry)
 	}
-	r.RaftLog.Append(entries)
+	r.RaftLog.appendEntry(entries)
 	pr := r.Prs[r.id]
 	pr.Match = r.RaftLog.LastIndex()
 	pr.Next = r.RaftLog.LastIndex() + 1
@@ -694,7 +704,7 @@ func (r *Raft) handleAppendEntriesOrHeartbeat(m pb.Message) error {
 			return err
 		}
 		if m.Entries[i].Term != term {
-			r.RaftLog.TruncateTo(index)
+			r.RaftLog.truncateTo(index)
 			break
 		}
 	}
@@ -703,7 +713,7 @@ func (r *Raft) handleAppendEntriesOrHeartbeat(m pb.Message) error {
 		entry := m.Entries[i]
 		entries = append(entries, *entry)
 	}
-	r.RaftLog.Append(entries)
+	r.RaftLog.appendEntry(entries)
 
 	lastIndex := m.Index
 	if len(m.Entries) > 0 {
