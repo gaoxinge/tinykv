@@ -929,7 +929,7 @@ func TestHeartbeatUpdateCommit2AB(t *testing.T) {
 		for i := 0; i < tt.successCnt; i++ {
 			nt.send(pb.Message{From: 2, To: 2, MsgType: pb.MessageType_MsgPropose, Entries: []*pb.Entry{{}}})
 		}
-		wCommit := uint64(2 + tt.successCnt) // 2 elctions
+		wCommit := uint64(2 + tt.successCnt) // 2 elections
 		if sm2.RaftLog.committed != wCommit {
 			t.Fatalf("#%d: expected sm2 commit: %d, got: %d", i, wCommit, sm2.RaftLog.committed)
 		}
