@@ -17,11 +17,15 @@ package raft
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"sort"
+	"time"
 
 	"github.com/pingcap-incubator/tinykv/log"
 	pb "github.com/pingcap-incubator/tinykv/proto/pkg/eraftpb"
 )
+
+var globalRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 // None is a placeholder node ID used when there is no leader.
 const None uint64 = 0
@@ -137,7 +141,8 @@ type Raft struct {
 	// heartbeat interval, should send
 	heartbeatTimeout int
 	// baseline of election interval
-	electionTimeout int
+	electionTimeout           int
+	randomizedElectionTimeout int
 	// number of ticks since it reached last heartbeatTimeout.
 	// only leader keeps heartbeatElapsed.
 	heartbeatElapsed int
@@ -194,6 +199,7 @@ func newRaft(c *Config) *Raft {
 	r.Lead = 0
 	r.electionTimeout = c.ElectionTick
 	r.heartbeatTimeout = c.HeartbeatTick
+	r.resetRandomizedElectionTimeout()
 	return r
 }
 
@@ -327,7 +333,7 @@ func (r *Raft) tickHeartbeat() {
 
 func (r *Raft) tickElection() {
 	r.electionElapsed++
-	if r.electionElapsed >= r.electionTimeout {
+	if r.pastElectionTimeout() {
 		r.electionElapsed = 0
 		if err := r.Step(pb.Message{MsgType: pb.MessageType_MsgHup}); err != nil {
 			log.Warnf("[%s] step hup msg with error %v", r, err)
@@ -364,6 +370,7 @@ func (r *Raft) becomeFollower(term uint64, lead uint64) {
 	r.Lead = lead
 	r.heartbeatElapsed = 0
 	r.electionElapsed = 0
+	r.resetRandomizedElectionTimeout()
 }
 
 // becomeCandidate transform this peer's state to candidate
@@ -386,6 +393,7 @@ func (r *Raft) becomeCandidate() {
 	r.Lead = 0
 	r.heartbeatElapsed = 0
 	r.electionElapsed = 0
+	r.resetRandomizedElectionTimeout()
 }
 
 // becomeLeader transform this peer's state to leader
@@ -407,12 +415,21 @@ func (r *Raft) becomeLeader() {
 	r.Lead = r.id
 	r.heartbeatElapsed = 0
 	r.electionElapsed = 0
+	r.resetRandomizedElectionTimeout()
 
 	m := r.newMessage(pb.MessageType_MsgPropose, r.id)
 	m.Entries = []*pb.Entry{new(pb.Entry)}
 	if err := r.Step(m); err != nil {
 		log.Warnf("[%s] step noop with error %v", r, err)
 	}
+}
+
+func (r *Raft) pastElectionTimeout() bool {
+	return r.electionElapsed >= r.randomizedElectionTimeout
+}
+
+func (r *Raft) resetRandomizedElectionTimeout() {
+	r.randomizedElectionTimeout = r.electionTimeout + globalRand.Intn(r.electionTimeout)
 }
 
 // Step the entrance of handle message, see `MessageType`

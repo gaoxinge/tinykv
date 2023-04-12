@@ -148,6 +148,7 @@ func (l *RaftLog) truncateTo(i uint64) {
 	}
 	first := l.entries[1].Index
 	l.entries = l.entries[:i-first+1]
+	l.stabled = i - first
 }
 
 func (l *RaftLog) appendEntry(entries []pb.Entry) {
