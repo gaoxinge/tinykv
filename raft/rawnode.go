@@ -70,12 +70,19 @@ type Ready struct {
 type RawNode struct {
 	Raft *Raft
 	// Your Data Here (2A).
+	prevHardState *pb.HardState
 }
 
 // NewRawNode returns a new RawNode given configuration and a list of raft peers.
 func NewRawNode(config *Config) (*RawNode, error) {
 	// Your Code Here (2A).
-	return nil, nil
+	rn := new(RawNode)
+	rn.Raft = newRaft(config)
+	rn.prevHardState = new(pb.HardState)
+	rn.prevHardState.Term = rn.Raft.Term
+	rn.prevHardState.Vote = rn.Raft.Vote
+	rn.prevHardState.Commit = rn.Raft.RaftLog.committed
+	return rn, nil
 }
 
 // Tick advances the internal logical clock by a single tick.
@@ -143,12 +150,37 @@ func (rn *RawNode) Step(m pb.Message) error {
 // Ready returns the current point-in-time state of this RawNode.
 func (rn *RawNode) Ready() Ready {
 	// Your Code Here (2A).
-	return Ready{}
+	ready := Ready{}
+	if rn.Raft.Term != rn.prevHardState.Term || rn.Raft.Vote != rn.prevHardState.Vote || rn.Raft.RaftLog.committed != rn.prevHardState.Commit {
+		ready.HardState = pb.HardState{
+			Term:   rn.Raft.Term,
+			Vote:   rn.Raft.Vote,
+			Commit: rn.Raft.RaftLog.committed,
+		}
+	}
+	ready.Entries = rn.Raft.RaftLog.unstableEntries()
+	ready.CommittedEntries = rn.Raft.RaftLog.nextEnts()
+	if len(rn.Raft.msgs) > 0 {
+		ready.Messages = rn.Raft.msgs
+	}
+	return ready
 }
 
 // HasReady called when RawNode user need to check if any Ready pending.
 func (rn *RawNode) HasReady() bool {
 	// Your Code Here (2A).
+	if rn.Raft.Term != rn.prevHardState.Term || rn.Raft.Vote != rn.prevHardState.Vote || rn.Raft.RaftLog.committed != rn.prevHardState.Commit {
+		return true
+	}
+	if len(rn.Raft.RaftLog.unstableEntries()) > 0 {
+		return true
+	}
+	if len(rn.Raft.RaftLog.nextEnts()) > 0 {
+		return true
+	}
+	if len(rn.Raft.msgs) > 0 {
+		return true
+	}
 	return false
 }
 
@@ -156,6 +188,12 @@ func (rn *RawNode) HasReady() bool {
 // last Ready results.
 func (rn *RawNode) Advance(rd Ready) {
 	// Your Code Here (2A).
+	rn.Raft.msgs = rn.Raft.msgs[:0]
+	rn.Raft.RaftLog.stabled = rn.Raft.RaftLog.LastIndex()
+	rn.Raft.RaftLog.applied = rn.Raft.RaftLog.committed
+	rn.prevHardState.Term = rn.Raft.Term
+	rn.prevHardState.Vote = rn.Raft.Vote
+	rn.prevHardState.Commit = rn.Raft.RaftLog.committed
 }
 
 // GetProgress return the Progress of this node and its peers, if this

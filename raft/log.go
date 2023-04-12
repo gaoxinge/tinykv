@@ -63,23 +63,28 @@ func newLog(storage Storage) *RaftLog {
 	raftLog.storage = storage
 	first, err := storage.FirstIndex()
 	if err != nil {
-		log.Warnf("storage get first index in new log with err %v", err)
+		log.Debugf("storage get first index in new log with err %v", err)
 		return nil
 	}
 	last, err := storage.LastIndex()
 	if err != nil {
-		log.Warnf("storage get last index in new log with err %v", err)
+		log.Debugf("storage get last index in new log with err %v", err)
 		return nil
 	}
 	entries, err := storage.Entries(first, last+1)
 	if err != nil {
-		log.Warnf("storage get entries between %d and %d in new log with err %v", first, last+1, err)
+		log.Debugf("storage get entries between %d and %d in new log with err %v", first, last+1, err)
 		return nil
 	}
 	raftLog.entries = make([]pb.Entry, 1)
 	raftLog.entries = append(raftLog.entries, entries...)
 	raftLog.applied = 0
-	raftLog.committed = 0
+	hard, _, err := storage.InitialState()
+	if err != nil {
+		log.Debugf("storage init state with error %v", err)
+		return nil
+	}
+	raftLog.committed = hard.Commit
 	raftLog.stabled = last
 	return raftLog
 }
@@ -117,7 +122,7 @@ func (l *RaftLog) LastIndex() uint64 {
 	if len(l.entries) <= 1 {
 		index, err := l.storage.LastIndex()
 		if err != nil {
-			log.Warnf("storage get last index with error %v", err)
+			log.Debugf("storage get last index with error %v", err)
 			return 0
 		}
 		return index

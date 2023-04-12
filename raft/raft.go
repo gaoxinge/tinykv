@@ -177,7 +177,7 @@ func newRaft(c *Config) *Raft {
 	r.id = c.ID
 	hard, _, err := c.Storage.InitialState()
 	if err != nil {
-		log.Warnf("storage init state with error %v", err)
+		log.Debugf("storage init state with error %v", err)
 		return nil
 	}
 	r.Term = hard.Term
@@ -190,9 +190,6 @@ func newRaft(c *Config) *Raft {
 		pr.Next = r.RaftLog.LastIndex() + 1
 		r.Prs[peer] = pr
 	}
-	pr := r.Prs[r.id]
-	pr.Match = r.RaftLog.LastIndex()
-	pr.Next = r.RaftLog.LastIndex() + 1
 	r.State = StateFollower
 	r.votes = make(map[uint64]bool)
 	r.msgs = make([]pb.Message, 0)
@@ -256,7 +253,7 @@ func (r *Raft) sendAppend(to uint64) bool {
 	m.Index = r.Prs[to].Next - 1
 	term, err := r.RaftLog.Term(m.Index)
 	if err != nil {
-		log.Warnf("[%s] raft log get term with error %v", r, err)
+		log.Debugf("[%s] raft log get term with error %v", r, err)
 		return false
 	}
 	m.LogTerm = term
@@ -326,7 +323,7 @@ func (r *Raft) tickHeartbeat() {
 	if r.heartbeatElapsed >= r.heartbeatTimeout {
 		r.heartbeatElapsed = 0
 		if err := r.Step(pb.Message{MsgType: pb.MessageType_MsgBeat}); err != nil {
-			log.Warnf("[%s] step beat msg with error %v", r, err)
+			log.Debugf("[%s] step beat msg with error %v", r, err)
 		}
 	}
 }
@@ -336,7 +333,7 @@ func (r *Raft) tickElection() {
 	if r.pastElectionTimeout() {
 		r.electionElapsed = 0
 		if err := r.Step(pb.Message{MsgType: pb.MessageType_MsgHup}); err != nil {
-			log.Warnf("[%s] step hup msg with error %v", r, err)
+			log.Debugf("[%s] step hup msg with error %v", r, err)
 		}
 	}
 }
@@ -420,7 +417,7 @@ func (r *Raft) becomeLeader() {
 	m := r.newMessage(pb.MessageType_MsgPropose, r.id)
 	m.Entries = []*pb.Entry{new(pb.Entry)}
 	if err := r.Step(m); err != nil {
-		log.Warnf("[%s] step noop with error %v", r, err)
+		log.Debugf("[%s] step noop with error %v", r, err)
 	}
 }
 
@@ -436,7 +433,7 @@ func (r *Raft) resetRandomizedElectionTimeout() {
 // on `eraftpb.proto` for what msgs should be handled
 func (r *Raft) Step(m pb.Message) error {
 	// Your Code Here (2A).
-	log.Infof("[%s] handle message {%s}", r, r.stringMessage(m))
+	log.Debugf("[%s] handle message {%s}", r, r.stringMessage(m))
 
 	if m.MsgType != pb.MessageType_MsgHup && m.MsgType != pb.MessageType_MsgBeat && m.MsgType != pb.MessageType_MsgPropose {
 		if r.Term > m.Term {
@@ -614,7 +611,7 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 	if m.Index <= r.RaftLog.LastIndex() {
 		term, err := r.RaftLog.Term(m.Index)
 		if err != nil {
-			log.Warnf("[%s] handle append entries with error %v", r, err)
+			log.Debugf("[%s] handle append entries with error %v", r, err)
 			return
 		}
 		if term != m.LogTerm {
@@ -638,7 +635,7 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 		}
 		term, err := r.RaftLog.Term(index)
 		if err != nil {
-			log.Warnf("[%s] handle append entries with error %v", r, err)
+			log.Debugf("[%s] handle append entries with error %v", r, err)
 			return
 		}
 		if m.Entries[i].Term != term {
