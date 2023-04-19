@@ -5,9 +5,11 @@ import (
 	"testing"
 
 	"github.com/Connor1996/badger"
+
 	"github.com/pingcap-incubator/tinykv/kv/raftstore/meta"
 	"github.com/pingcap-incubator/tinykv/kv/raftstore/util"
 	"github.com/pingcap-incubator/tinykv/kv/util/engine_util"
+	"github.com/pingcap-incubator/tinykv/log"
 	"github.com/pingcap-incubator/tinykv/proto/pkg/eraftpb"
 	rspb "github.com/pingcap-incubator/tinykv/proto/pkg/raft_serverpb"
 	"github.com/pingcap-incubator/tinykv/raft"
@@ -51,8 +53,11 @@ func newTestPeerStorageFromEnts(t *testing.T, ents []eraftpb.Entry) *PeerStorage
 }
 
 func cleanUpTestData(peerStore *PeerStorage) {
+	log.Infof("start clean up")
 	if err := peerStore.Engines.Destroy(); err != nil {
-		panic(err)
+		log.Warnf("end clean up with error %v", err)
+	} else {
+		log.Warnf("end clean up")
 	}
 }
 

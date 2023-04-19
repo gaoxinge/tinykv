@@ -308,7 +308,18 @@ func ClearMeta(engines *engine_util.Engines, kvWB, raftWB *engine_util.WriteBatc
 // never be committed
 func (ps *PeerStorage) Append(entries []eraftpb.Entry, raftWB *engine_util.WriteBatch) error {
 	// Your Code Here (2B).
-	return nil
+	if len(entries) == 0 {
+		return nil
+	}
+	for _, entry := range entries {
+		if err := raftWB.SetMeta(meta.RaftLogKey(ps.region.Id, entry.Index), &entry); err != nil {
+			return err
+		}
+	}
+	raftState := ps.raftState
+	raftState.LastIndex = entries[len(entries)-1].Index
+	raftState.LastTerm = entries[len(entries)-1].Term
+	return raftWB.SetMeta(meta.RaftStateKey(ps.region.Id), raftState)
 }
 
 // Apply the peer with given snapshot
